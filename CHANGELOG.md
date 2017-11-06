@@ -1,8 +1,13 @@
 ## 0.3.3 (Unreleased)
 
+FEATURES:
+
+* **New Resource:** `azurerm_redis_firewall_rule` [GH-529]
+
 IMPROVEMENTS:
 
 * core: appending the CloudShell version to the user agent when running within CloudShell [GH-483]
+* `azurerm_app_service` / `azurerm_app_service_plan` - adding validation for the `name` fields [GH-528]
 * `azurerm_public_ip` - Clarify the error message for the validation of domain name label [GH-485]
 * `azurerm_network_security_group` - fixing a crash when changes were made outside of Terraform [GH-492]
 * `azurerm_virtual_machine` - ensuring `vhd_uri` is validated [GH-470]
