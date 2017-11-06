@@ -76,6 +76,11 @@ func resourceArmVirtualMachine() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+
+						"tenant_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
 				Set: resourceArmVirtualMachineIdentityHash,
@@ -894,6 +899,9 @@ func flattenAzureRmVirtualMachineIdentity(identity *compute.VirtualMachineIdenti
 	if identity.PrincipalID != nil {
 		result["principal_id"] = *identity.PrincipalID
 	}
+	if identity.TenantID != nil {
+		result["tenant_id"] = *identity.TenantID
+	}
 
 	return []interface{}{result}
 }
@@ -1124,10 +1132,6 @@ func expandAzureRmVirtualMachineIdentity(d *schema.ResourceData) (*compute.Virtu
 		PrincipalID: &principalID,
 		TenantID:    &tenantID,
 		Type:        compute.ResourceIdentityType(identityType),
-	}
-
-	if principalID != "" && identityType != "" {
-		return nil, fmt.Errorf("[ERROR] Conflict between `principal_id` and `type` (only one or the other can be used)")
 	}
 
 	return virtualMachineIdentity, nil
