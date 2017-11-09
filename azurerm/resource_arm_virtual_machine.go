@@ -61,6 +61,31 @@ func resourceArmVirtualMachine() *schema.Resource {
 				},
 			},
 
+			"identity": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"principal_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+
+						"tenant_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+				Set: resourceArmVirtualMachineIdentityHash,
+			},
+
 			"availability_set_id": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -598,6 +623,14 @@ func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) e
 		vm.Plan = plan
 	}
 
+	if _, ok := d.GetOk("identity"); ok {
+		identity, err := expandAzureRmVirtualMachineIdentity(d)
+		if err != nil {
+			return err
+		}
+		vm.Identity = identity
+	}
+
 	_, vmError := vmClient.CreateOrUpdate(resGroup, name, vm, make(chan struct{}))
 	vmErr := <-vmError
 	if vmErr != nil {
@@ -644,6 +677,12 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 	if resp.Plan != nil {
 		if err := d.Set("plan", flattenAzureRmVirtualMachinePlan(resp.Plan)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Plan error: %#v", err)
+		}
+	}
+
+	if resp.Identity != nil {
+		if err := d.Set("identity", flattenAzureRmVirtualMachineIdentity(resp.Identity)); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Identity: %#v", err)
 		}
 	}
 
@@ -850,6 +889,19 @@ func flattenAzureRmVirtualMachinePlan(plan *compute.Plan) []interface{} {
 	result["name"] = *plan.Name
 	result["publisher"] = *plan.Publisher
 	result["product"] = *plan.Product
+
+	return []interface{}{result}
+}
+
+func flattenAzureRmVirtualMachineIdentity(identity *compute.VirtualMachineIdentity) []interface{} {
+	result := make(map[string]interface{})
+	result["type"] = identity.Type
+	if identity.PrincipalID != nil {
+		result["principal_id"] = *identity.PrincipalID
+	}
+	if identity.TenantID != nil {
+		result["tenant_id"] = *identity.TenantID
+	}
 
 	return []interface{}{result}
 }
@@ -1065,6 +1117,24 @@ func expandAzureRmVirtualMachinePlan(d *schema.ResourceData) (*compute.Plan, err
 		Name:      &name,
 		Product:   &product,
 	}, nil
+}
+
+func expandAzureRmVirtualMachineIdentity(d *schema.ResourceData) (*compute.VirtualMachineIdentity, error) {
+	virtualMachineIdentities := d.Get("identity").(*schema.Set).List()
+
+	machineIdentity := virtualMachineIdentities[0].(map[string]interface{})
+
+	principalID := machineIdentity["principal_id"].(string)
+	tenantID := machineIdentity["tenant_id"].(string)
+	identityType := machineIdentity["type"].(string)
+
+	virtualMachineIdentity := &compute.VirtualMachineIdentity{
+		PrincipalID: &principalID,
+		TenantID:    &tenantID,
+		Type:        compute.ResourceIdentityType(identityType),
+	}
+
+	return virtualMachineIdentity, nil
 }
 
 func expandAzureRmVirtualMachineOsProfile(d *schema.ResourceData) (*compute.OSProfile, error) {
@@ -1497,6 +1567,17 @@ func findStorageAccountResourceGroup(meta interface{}, storageAccountName string
 	}
 
 	return id.ResourceGroup, nil
+}
+
+func resourceArmVirtualMachineIdentityHash(v interface{}) int {
+	var buf bytes.Buffer
+
+	if v != nil {
+		m := v.(map[string]interface{})
+		buf.WriteString(fmt.Sprintf("%s-", m["type"].(string)))
+	}
+
+	return hashcode.String(buf.String())
 }
 
 func resourceArmVirtualMachineStorageOsProfileHash(v interface{}) int {

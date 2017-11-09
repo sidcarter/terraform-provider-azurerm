@@ -228,6 +228,7 @@ The following arguments are supported:
     create the virtual machine.
 * `location` - (Required) Specifies the supported Azure location where the resource exists. Changing this forces a new resource to be created.
 * `plan` - (Optional) A plan block as documented below.
+* `identity` - (Optional) An identity block as documented below.
 * `availability_set_id` - (Optional) The Id of the Availability Set in which to create the virtual machine
 * `boot_diagnostics` - (Optional) A boot diagnostics profile block as referenced below.
 * `vm_size` - (Required) Specifies the [size of the virtual machine](https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-size-specs/).
@@ -254,6 +255,10 @@ For more information on the different example configurations, please check out t
 * `publisher` - (Required) Specifies the publisher of the image.
 * `product` - (Required) Specifies the product of the image from the marketplace.
 
+`Identity` supports the following:
+
+* `type` - (Required) Specifies the identity type of the virtual machine. The only allowable value is `SystemAssigned`.
+
 `boot_diagnostics` supports the following:
 
 * `enabled`: (Required) Whether to enable boot diagnostics for the virtual machine.
@@ -261,7 +266,7 @@ For more information on the different example configurations, please check out t
 
 `storage_image_reference` supports the following:
 
-* `id` - (Optional) Specifies the ID of the (custom) image to use to create the virtual 
+* `id` - (Optional) Specifies the ID of the (custom) image to use to create the virtual
 machine, for example:
 
 ```hcl
